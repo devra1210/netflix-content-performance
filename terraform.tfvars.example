@@ -1,0 +1,7 @@
+aws_region              = "us-east-1"
+project_name            = "netflix-content-performance"
+environment             = "dev"
+force_destroy_buckets   = false
+kinesis_stream_mode     = "ON_DEMAND"
+kinesis_shard_count     = 1
+kinesis_retention_hours = 24
