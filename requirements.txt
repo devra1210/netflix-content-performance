@@ -1,0 +1,9 @@
+boto3
+pandas
+pyarrow
+awsglue
+dbt-redshift
+pytest
+python-dotenv
+faker
+psycopg2-binary

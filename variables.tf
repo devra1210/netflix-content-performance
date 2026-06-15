@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "Short project name used in resource naming."
   type        = string
-  default     = "netflix-content-performance"
+  default     = "ncp"
 }
 
 variable "environment" {
@@ -20,11 +20,6 @@ variable "force_destroy_buckets" {
   description = "Allow Terraform to delete non-empty S3 buckets. Keep false outside throwaway environments."
   type        = bool
   default     = false
-}
-
-variable "name_prefix" {
-  description = "Resource name prefix."
-  type        = string
 }
 
 variable "kinesis_stream_mode" {

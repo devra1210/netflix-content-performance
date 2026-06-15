@@ -1,0 +1,17 @@
+name: netflix_content_roi
+version: 1.0.0
+config-version: 2
+
+profile: netflix_content_roi
+
+model-paths:
+  - models
+
+models:
+  netflix_content_roi:
+    staging:
+      +schema: staging
+      +materialized: view
+    marts:
+      +schema: marts
+      +materialized: table

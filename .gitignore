@@ -2,6 +2,8 @@
 *.tfstate
 *.tfstate.*
 *.tfvars
+tfplan
+*.tfplan
 !.terraform.lock.hcl
 !terraform.tfvars.example
 crash.log
@@ -10,3 +12,9 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+data/*
+!data/.gitkeep
+.env
+.venv/
+__pycache__/
+.pytest_cache/

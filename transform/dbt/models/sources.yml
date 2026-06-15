@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: analytics
+    schema: analytics
+    tables:
+      - name: dim_title
+      - name: dim_region
+      - name: dim_date
+      - name: fact_content_performance
