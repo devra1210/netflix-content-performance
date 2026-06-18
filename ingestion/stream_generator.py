@@ -21,7 +21,7 @@ DEVICES = ("TV", "Mobile", "Tablet", "Web", "Game Console")
 
 
 def load_title_ids(data_dir: Path) -> list[str]:
-    for filename in ("licensing_costs.csv", "tmdb_movies.csv"):
+    for filename in ("licensing_costs.csv", "movies.csv"):
         path = data_dir / filename
         if path.exists():
             frame = pd.read_csv(path, usecols=lambda column: column.lower() in {"title_id", "imdb_id", "id"})

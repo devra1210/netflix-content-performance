@@ -8,6 +8,11 @@ output "curated_bucket_name" {
   value       = module.storage.curated_bucket_name
 }
 
+output "glue_scripts_bucket_name" {
+  description = "Bucket for Glue ETL job scripts."
+  value       = module.storage.glue_scripts_bucket_name
+}
+
 output "athena_results_bucket_name" {
   description = "Bucket where Athena query results are written."
   value       = module.storage.athena_results_bucket_name

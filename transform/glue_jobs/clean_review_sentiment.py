@@ -1,4 +1,4 @@
-"""AWS Glue job to normalize IMDB sentiment reviews and aggregate by title."""
+"""AWS Glue job to aggregate review sentiment by title."""
 
 from __future__ import annotations
 
@@ -35,12 +35,12 @@ def main() -> None:
     glue_context = GlueContext(sc)
     spark = glue_context.spark_session
     job = Job(glue_context)
-    job.init(arg("JOB_NAME", "clean_imdb_sentiment"), {})
+    job.init(arg("JOB_NAME", "clean_review_sentiment"), {})
 
     raw_bucket = arg("RAW_BUCKET")
     curated_bucket = arg("CURATED_BUCKET")
-    source_path = arg("SOURCE_PATH") or (f"s3://{raw_bucket}/imdb_reviews/" if raw_bucket else None)
-    output_path = arg("OUTPUT_PATH") or (f"s3://{curated_bucket}/imdb_sentiment/" if curated_bucket else None)
+    source_path = arg("SOURCE_PATH") or (f"s3://{raw_bucket}/reviews/" if raw_bucket else None)
+    output_path = arg("OUTPUT_PATH") or (f"s3://{curated_bucket}/sentiment/" if curated_bucket else None)
 
     if not source_path:
         raise ValueError("RAW_BUCKET or SOURCE_PATH is required")
@@ -58,14 +58,14 @@ def main() -> None:
     for column in df.columns:
         df = df.withColumnRenamed(column, snake_case(column))
 
-    title_id = first_column(df.columns, ("title_id", "imdb_id", "imdbid", "movie_id"))
+    title_id = first_column(df.columns, ("title_id", "movie_id", "imdb_id", "imdbid"))
     sentiment = first_column(df.columns, ("sentiment", "label", "polarity"))
     review = first_column(df.columns, ("review", "review_text", "text"))
 
     if title_id is None:
-        raise ValueError("IMDB reviews need title_id/imdb_id to aggregate sentiment by title")
+        raise ValueError("Reviews need title_id/movie_id to aggregate sentiment by title")
     if sentiment is None:
-        raise ValueError("IMDB reviews need a sentiment/label/polarity column")
+        raise ValueError("Reviews need a sentiment/label/polarity column")
 
     scored = df.withColumn("title_id", F.col(title_id).cast("string"))
     scored = scored.withColumn(

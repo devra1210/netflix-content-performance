@@ -55,17 +55,17 @@ def main() -> None:
     if not output_path:
         raise ValueError("CURATED_BUCKET or OUTPUT_PATH is required")
 
-    user_path = arg("USER_BEHAVIOR_PATH") or (f"s3://{curated_bucket}/user_behavior/" if curated_bucket else None)
-    tmdb_path = arg("TMDB_PATH") or (f"s3://{curated_bucket}/tmdb/" if curated_bucket else None)
-    sentiment_path = arg("SENTIMENT_PATH") or (f"s3://{curated_bucket}/imdb_sentiment/" if curated_bucket else None)
-    if not user_path or not tmdb_path or not sentiment_path:
+    watch_path =arg("USER_BEHAVIOR_PATH") or (f"s3://{curated_bucket}/watch_history/" if curated_bucket else None)
+    movies_path = arg("MOVIES_PATH") or (f"s3://{curated_bucket}/movies/" if curated_bucket else None)
+    sentiment_path = arg("SENTIMENT_PATH") or (f"s3://{curated_bucket}/sentiment/" if curated_bucket else None)
+    if not watch_path or not movies_path or not sentiment_path:
         raise ValueError("CURATED_BUCKET or explicit curated source paths are required")
 
-    user_df = normalize_columns(read_parquet(spark, user_path))
-    tmdb_df = normalize_columns(read_parquet(spark, tmdb_path))
+    watch_df = normalize_columns(read_parquet(spark, watch_path))
+    movies_df = normalize_columns(read_parquet(spark, movies_path))
     sentiment_df = normalize_columns(read_parquet(spark, sentiment_path))
 
-    licensing_path = arg("LICENSING_PATH")
+    licensing_path = arg("LICENSING_PATH") or (f"s3://{curated_bucket}/licensing/" if curated_bucket else None)
     if licensing_path:
         licensing_df = normalize_columns(read_parquet(spark, licensing_path))
     else:
@@ -79,18 +79,18 @@ def main() -> None:
         )
         licensing_df = normalize_columns(licensing_df)
 
-    title_col = first_column(user_df.columns, ("title_id", "imdb_id", "movie_id"))
-    user_col = first_column(user_df.columns, ("user_id", "profile_id", "customer_id"))
-    region_col = first_column(user_df.columns, ("region", "region_code", "country"))
-    duration_col = first_column(user_df.columns, ("watch_duration_mins", "watch_duration_minutes", "duration_mins", "minutes_watched", "watch_time"))
-    watch_ts_col = first_column(user_df.columns, ("timestamp", "watched_at", "event_timestamp", "watch_date", "date"))
-    churn_col = first_column(user_df.columns, ("churned", "is_churned", "cancelled", "canceled"))
-    churn_date_col = first_column(user_df.columns, ("churn_date", "cancel_date", "cancellation_date"))
+    title_col = first_column(watch_df.columns, ("title_id", "movie_id", "imdb_id"))
+    user_col = first_column(watch_df.columns, ("user_id", "profile_id", "customer_id"))
+    region_col = first_column(watch_df.columns, ("region", "region_code", "country"))
+    duration_col = first_column(watch_df.columns, ("watch_duration_mins", "watch_duration_minutes", "duration_mins", "minutes_watched", "watch_time"))
+    watch_ts_col = first_column(watch_df.columns, ("timestamp", "watched_at", "event_timestamp", "watch_date", "date"))
+    churn_col = first_column(watch_df.columns, ("churned", "is_churned", "cancelled", "canceled"))
+    churn_date_col = first_column(watch_df.columns, ("churn_date", "cancel_date", "cancellation_date"))
 
     if title_col is None or duration_col is None:
         raise ValueError("User behavior needs title_id and watch duration columns to compute ROI")
 
-    prepared = user_df.withColumn("title_id", F.col(title_col).cast("string")).withColumn(
+    prepared = watch_df.withColumn("title_id", F.col(title_col).cast("string")).withColumn(
         "watch_duration_mins", F.col(duration_col).cast("double")
     )
     prepared = prepared.withColumn("region", F.col(region_col).cast("string") if region_col else F.lit("UNKNOWN"))
@@ -135,7 +135,7 @@ def main() -> None:
             "left",
         )
         .drop(licensing.title_id)
-        .join(tmdb_df, "title_id", "left")
+        .join(movies_df, "title_id", "left")
         .join(sentiment_df.select("title_id", "sentiment_score"), "title_id", "left")
     )
 

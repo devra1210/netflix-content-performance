@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate simulated Netflix licensing costs from TMDB title metadata."""
+"""Generate simulated Netflix licensing costs from movie metadata."""
 
 from __future__ import annotations
 
@@ -31,19 +31,19 @@ def normalize_content_type(value: object) -> str:
 
 
 def generate_licensing(
-    tmdb_path: Path,
+    movies_path: Path,
     output_path: Path,
     regions: tuple[str, ...],
     license_year: int,
     seed: int,
     max_titles: int | None,
 ) -> pd.DataFrame:
-    tmdb = pd.read_csv(tmdb_path, low_memory=False)
-    columns = list(tmdb.columns)
+    movies = pd.read_csv(movies_path, low_memory=False)
+    columns = list(movies.columns)
 
     id_column = first_existing_column(
         columns,
-        ("title_id", "imdb_id", "imdbid", "id", "tmdb_id", "movie_id"),
+        ("title_id", "movie_id", "imdb_id", "imdbid", "id"),
     )
     title_column = first_existing_column(
         columns,
@@ -56,11 +56,11 @@ def generate_licensing(
 
     if id_column is None or title_column is None:
         raise ValueError(
-            "TMDB CSV must include an id column and a title/name column. "
+            "Movies CSV must include an id column and a title/name column. "
             f"Found columns: {', '.join(columns[:20])}"
         )
 
-    work = tmdb[[id_column, title_column] + ([type_column] if type_column else [])].copy()
+    work = movies[[id_column, title_column] + ([type_column] if type_column else [])].copy()
     work = work.rename(columns={id_column: "title_id", title_column: "title_name"})
     work["title_id"] = work["title_id"].astype(str).str.strip()
     work["title_name"] = work["title_name"].astype(str).str.strip()
@@ -97,7 +97,7 @@ def generate_licensing(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--tmdb-path", default="data/tmdb_movies.csv", type=Path)
+    parser.add_argument("--movies-path", default="data/movies.csv", type=Path)
     parser.add_argument("--output-path", default="data/licensing_costs.csv", type=Path)
     parser.add_argument("--regions", default=",".join(DEFAULT_REGIONS))
     parser.add_argument("--license-year", default=2024, type=int)
@@ -107,7 +107,7 @@ def main() -> None:
 
     regions = tuple(region.strip().upper() for region in args.regions.split(",") if region.strip())
     generated = generate_licensing(
-        args.tmdb_path,
+        args.movies_path,
         args.output_path,
         regions,
         args.license_year,

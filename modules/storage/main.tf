@@ -13,6 +13,11 @@ resource "aws_s3_bucket" "athena_results" {
   force_destroy = var.force_destroy_buckets
 }
 
+resource "aws_s3_bucket" "glue_scripts" {
+  bucket_prefix = "${var.name_prefix}-glue-scripts-"
+  force_destroy = var.force_destroy_buckets
+}
+
 resource "aws_s3_bucket_public_access_block" "raw" {
   bucket = aws_s3_bucket.raw.id
 
@@ -33,6 +38,15 @@ resource "aws_s3_bucket_public_access_block" "curated" {
 
 resource "aws_s3_bucket_public_access_block" "athena_results" {
   bucket = aws_s3_bucket.athena_results.id
+
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_public_access_block" "glue_scripts" {
+  bucket = aws_s3_bucket.glue_scripts.id
 
   block_public_acls       = true
   block_public_policy     = true
@@ -70,6 +84,16 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "athena_results" {
   }
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "glue_scripts" {
+  bucket = aws_s3_bucket.glue_scripts.id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
 resource "aws_s3_bucket_versioning" "raw" {
   bucket = aws_s3_bucket.raw.id
 
@@ -88,6 +112,14 @@ resource "aws_s3_bucket_versioning" "curated" {
 
 resource "aws_s3_bucket_versioning" "athena_results" {
   bucket = aws_s3_bucket.athena_results.id
+
+  versioning_configuration {
+    status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_versioning" "glue_scripts" {
+  bucket = aws_s3_bucket.glue_scripts.id
 
   versioning_configuration {
     status = "Enabled"
