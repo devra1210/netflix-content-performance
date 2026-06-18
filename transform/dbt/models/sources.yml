@@ -2,6 +2,7 @@ version: 2
 
 sources:
   - name: analytics
+    database: netflix_roi
     schema: analytics
     tables:
       - name: dim_title

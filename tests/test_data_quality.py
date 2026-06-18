@@ -13,7 +13,11 @@ psycopg2 = pytest.importorskip("psycopg2")
 @pytest.fixture(scope="module")
 def redshift_connection():
     required = ["REDSHIFT_ENDPOINT", "REDSHIFT_DB", "REDSHIFT_USER", "REDSHIFT_PASSWORD"]
-    missing = [name for name in required if not os.getenv(name)]
+    missing = [
+        name
+        for name in required
+        if not os.getenv(name) or os.getenv(name, "").strip().startswith("<")
+    ]
     if missing:
         pytest.skip(f"Missing Redshift environment variables: {', '.join(missing)}")
 

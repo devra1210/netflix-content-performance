@@ -65,6 +65,11 @@ def main() -> None:
     movies_df = normalize_columns(read_parquet(spark, movies_path))
     sentiment_df = normalize_columns(read_parquet(spark, sentiment_path))
 
+    if "title_id" not in movies_df.columns and "id" in movies_df.columns:
+        movies_df = movies_df.withColumnRenamed("id", "title_id")
+    if "title_name" not in movies_df.columns and "title" in movies_df.columns:
+        movies_df = movies_df.withColumnRenamed("title", "title_name")
+
     licensing_path = arg("LICENSING_PATH") or (f"s3://{curated_bucket}/licensing/" if curated_bucket else None)
     if licensing_path:
         licensing_df = normalize_columns(read_parquet(spark, licensing_path))
@@ -147,7 +152,43 @@ def main() -> None:
         F.sha2(F.concat_ws("|", F.col("title_id"), F.col("region"), F.col("year").cast("string")), 256),
     )
 
-    result.write.mode("overwrite").partitionBy("region", "year").format("parquet").save(output_path)
+    output_columns = [
+        ("performance_id", "string"),
+        ("title_id", "string"),
+        ("region", "string"),
+        ("year", "int"),
+        ("total_watch_hours", "double"),
+        ("churn_rate_post_title", "double"),
+        ("unique_viewers", "long"),
+        ("license_region", "string"),
+        ("license_cost_usd", "double"),
+        ("license_year", "int"),
+        ("title_name", "string"),
+        ("genre", "string"),
+        ("secondary_genre", "string"),
+        ("release_year", "int"),
+        ("content_type", "string"),
+        ("popularity", "double"),
+        ("duration_minutes", "double"),
+        ("rating", "string"),
+        ("language", "string"),
+        ("country_of_origin", "string"),
+        ("imdb_rating", "double"),
+        ("is_netflix_original", "boolean"),
+        ("added_to_platform", "date"),
+        ("sentiment_score", "double"),
+        ("cost_per_hour_watched", "double"),
+    ]
+    for column, data_type in output_columns:
+        if column not in result.columns:
+            result = result.withColumn(column, F.lit(None).cast(data_type))
+
+    result = result.withColumn("region_partition", F.col("region")).withColumn("year_partition", F.col("year"))
+    result.select(
+        *[F.col(column).cast(data_type).alias(column) for column, data_type in output_columns],
+        "region_partition",
+        "year_partition",
+    ).write.mode("overwrite").partitionBy("region_partition", "year_partition").format("parquet").save(output_path)
     job.commit()
 
 

@@ -42,6 +42,25 @@ For local test environments, set `force_destroy_buckets = true` if you want Terr
 
 The Kinesis stream defaults to `ON_DEMAND`, which is the simplest option for intermittent Kaggle dataset loads. Use `PROVISIONED` and adjust `kinesis_shard_count` if you need fixed capacity.
 
+## Redshift Star Schema
+
+The Redshift warehouse is modeled in the `netflix_roi` database under the `analytics` schema.
+
+1. Connect to Redshift as an admin user and create the database if needed:
+
+   ```sql
+   CREATE DATABASE netflix_roi;
+   ```
+
+2. Connect to `netflix_roi` and run [warehouse/create_tables.sql](/Users/devivaraprasadsunkari/netflix-content-performance/warehouse/create_tables.sql) to create:
+
+   - `analytics.dim_title`
+   - `analytics.dim_region`
+   - `analytics.dim_date`
+   - `analytics.fact_content_performance`
+
+3. After the Glue jobs write curated Parquet to S3, replace the placeholders in [warehouse/load_data.sql](/Users/devivaraprasadsunkari/netflix-content-performance/warehouse/load_data.sql) and run it from `netflix_roi`.
+
 ## Suggested Next Steps
 
 - Add a producer script that downloads the Kaggle dataset and writes each row to Kinesis.
