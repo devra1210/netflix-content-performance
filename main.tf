@@ -14,6 +14,9 @@ module "analytics" {
 
   name_prefix           = local.name_prefix
   athena_results_bucket = module.storage.athena_results_bucket_name
+  raw_bucket            = module.storage.raw_bucket_name
+  curated_bucket        = module.storage.curated_bucket_name
+  glue_scripts_bucket   = module.storage.glue_scripts_bucket_name
 }
 
 module "streaming" {
