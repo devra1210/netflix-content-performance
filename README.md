@@ -46,7 +46,7 @@ The Kinesis stream defaults to `ON_DEMAND`, which is the simplest option for int
 
 The Redshift warehouse is modeled in the `netflix_roi` database under the `analytics` schema.
 
-1. Connect to Redshift as an admin user and create the database if needed:
+1. Connect to Redshift as an admin user and create the database if needed by running [warehouse/create_database.sql](/Users/devivaraprasadsunkari/netflix-content-performance/warehouse/create_database.sql):
 
    ```sql
    CREATE DATABASE netflix_roi;

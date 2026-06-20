@@ -1,8 +1,4 @@
 -- Netflix ROI Redshift star schema.
---
--- Run this script while connected to the Redshift database `netflix_roi`.
--- If the database does not exist yet, create it from an admin database first:
---   CREATE DATABASE netflix_roi;
 
 CREATE SCHEMA IF NOT EXISTS analytics;
 

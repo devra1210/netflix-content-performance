@@ -1,9 +1,4 @@
 -- Load the Netflix ROI star schema from curated Parquet.
---
--- Run this script while connected to the Redshift database `netflix_roi`.
--- Replace placeholders before running:
---   {CURATED_BUCKET} with your curated bucket name
---   {REDSHIFT_IAM_ROLE_ARN} with the IAM role Redshift uses to read S3
 
 BEGIN;
 
