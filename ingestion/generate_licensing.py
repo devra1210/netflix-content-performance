@@ -79,15 +79,16 @@ def generate_licensing(
     rows: list[dict[str, object]] = []
     for record in work.to_dict("records"):
         cost_range = SERIES_COST_RANGE if record["content_type"] == "series" else MOVIE_COST_RANGE
-        rows.append(
-            {
-                "title_id": record["title_id"],
-                "title_name": record["title_name"],
-                "license_cost_usd": rng.randrange(cost_range[0], cost_range[1] + 1, 10_000),
-                "license_year": license_year,
-                "region": rng.choice(regions),
-            }
-        )
+        for region in regions:
+            rows.append(
+                {
+                    "title_id": record["title_id"],
+                    "title_name": record["title_name"],
+                    "license_cost_usd": rng.randrange(cost_range[0], cost_range[1] + 1, 10_000),
+                    "license_year": license_year,
+                    "region": region,
+                }
+            )
 
     licensing = pd.DataFrame(rows)
     output_path.parent.mkdir(parents=True, exist_ok=True)

@@ -10,6 +10,7 @@ from awsglue.job import Job
 from pyspark.context import SparkContext
 from pyspark.sql import DataFrame
 from pyspark.sql import functions as F
+from pyspark.sql import Window
 
 
 def arg(name: str, default: str | None = None) -> str | None:
@@ -41,6 +42,21 @@ def normalize_columns(df: DataFrame) -> DataFrame:
     return df
 
 
+def normalize_region(column: F.Column) -> F.Column:
+    normalized = F.upper(F.trim(column.cast("string")))
+    return (
+        F.when(normalized.isin("USA", "UNITED STATES", "UNITED STATES OF AMERICA"), F.lit("US"))
+        .when(normalized.isin("CANADA"), F.lit("CA"))
+        .when(normalized.isin("UNITED KINGDOM", "UK"), F.lit("GB"))
+        .when(normalized.isin("INDIA"), F.lit("IN"))
+        .when(normalized.isin("BRAZIL"), F.lit("BR"))
+        .when(normalized.isin("MEXICO"), F.lit("MX"))
+        .when(normalized.isin("GERMANY"), F.lit("DE"))
+        .when(normalized.isin("JAPAN"), F.lit("JP"))
+        .otherwise(F.coalesce(normalized, F.lit("UNKNOWN")))
+    )
+
+
 def main() -> None:
     sc = SparkContext()
     glue_context = GlueContext(sc)
@@ -55,7 +71,7 @@ def main() -> None:
     if not output_path:
         raise ValueError("CURATED_BUCKET or OUTPUT_PATH is required")
 
-    watch_path =arg("USER_BEHAVIOR_PATH") or (f"s3://{curated_bucket}/watch_history/" if curated_bucket else None)
+    watch_path = arg("USER_BEHAVIOR_PATH") or (f"s3://{curated_bucket}/watch_history/" if curated_bucket else None)
     movies_path = arg("MOVIES_PATH") or (f"s3://{curated_bucket}/movies/" if curated_bucket else None)
     sentiment_path = arg("SENTIMENT_PATH") or (f"s3://{curated_bucket}/sentiment/" if curated_bucket else None)
     if not watch_path or not movies_path or not sentiment_path:
@@ -98,7 +114,7 @@ def main() -> None:
     prepared = watch_df.withColumn("title_id", F.col(title_col).cast("string")).withColumn(
         "watch_duration_mins", F.col(duration_col).cast("double")
     )
-    prepared = prepared.withColumn("region", F.col(region_col).cast("string") if region_col else F.lit("UNKNOWN"))
+    prepared = prepared.withColumn("region", normalize_region(F.col(region_col)) if region_col else F.lit("UNKNOWN"))
     prepared = prepared.withColumn("user_id", F.col(user_col).cast("string") if user_col else F.monotonically_increasing_id().cast("string"))
     prepared = prepared.withColumn("watched_at", F.to_timestamp(F.col(watch_ts_col)) if watch_ts_col else F.current_timestamp())
     prepared = prepared.withColumn("year", F.year("watched_at"))
@@ -126,19 +142,30 @@ def main() -> None:
 
     licensing = licensing_df.select(
         F.col("title_id").cast("string").alias("title_id"),
-        F.col("region").cast("string").alias("license_region"),
+        normalize_region(F.col("region")).alias("license_region"),
         F.col("license_cost_usd").cast("double").alias("license_cost_usd"),
         F.col("license_year").cast("int").alias("license_year"),
+    )
+
+    license_window = Window.partitionBy(usage.title_id, usage.region, usage.year).orderBy(
+        F.when(licensing.license_year == usage.year, F.lit(0))
+        .when(licensing.license_year <= usage.year, F.lit(1))
+        .when(licensing.license_year.isNotNull(), F.lit(2))
+        .otherwise(F.lit(3)),
+        F.when(licensing.license_year.isNull(), F.lit(999999)).otherwise(F.abs(licensing.license_year - usage.year)),
+        licensing.license_year.desc_nulls_last(),
     )
 
     joined = (
         usage.join(
             licensing,
             (usage.title_id == licensing.title_id)
-            & ((usage.region == licensing.license_region) | licensing.license_region.isNull())
-            & ((usage.year == licensing.license_year) | licensing.license_year.isNull()),
+            & ((usage.region == licensing.license_region) | licensing.license_region.isNull()),
             "left",
         )
+        .withColumn("license_row_number", F.row_number().over(license_window))
+        .filter(F.col("license_row_number") == 1)
+        .drop("license_row_number")
         .drop(licensing.title_id)
         .join(movies_df, "title_id", "left")
         .join(sentiment_df.select("title_id", "sentiment_score"), "title_id", "left")
