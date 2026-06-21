@@ -54,16 +54,23 @@ def main() -> None:
     cleaned = (
         df.select(
             F.col("title_id").cast("string").alias("title_id"),
-            F.col("title_name").cast("string").alias("title_name") if "title_name" in df.columns else F.lit(None).cast("string").alias("title_name"),
-            F.col("license_cost_usd").cast("double").alias("license_cost_usd"),
+            F.col("title_name").cast("string").alias("title_name")
+            if "title_name" in df.columns
+            else F.lit(None).cast("string").alias("title_name"),
+
+            F.round(
+                F.col("license_cost_usd").cast("double") / 1_000_000,
+                2
+            ).alias("license_cost_usd_millions"),
+
             F.col("license_year").cast("int").alias("license_year"),
             F.upper(F.col("region").cast("string")).alias("region"),
         )
         .filter(
             F.col("title_id").isNotNull()
             & (F.length(F.trim("title_id")) > 0)
-            & F.col("license_cost_usd").isNotNull()
-            & (F.col("license_cost_usd") >= 0)
+            & F.col("license_cost_usd_millions").isNotNull()
+            & (F.col("license_cost_usd_millions") >= 0)
         )
         .dropDuplicates(["title_id", "region", "license_year"])
     )
