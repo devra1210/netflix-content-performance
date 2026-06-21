@@ -59,7 +59,7 @@ def main() -> None:
             else F.lit(None).cast("string").alias("title_name"),
 
             F.round(
-                F.col("license_cost_usd").cast("double") / 1_000_000,
+                F.col("license_cost_usd").cast("double") / 1000000,
                 2
             ).alias("license_cost_usd_millions"),
 
