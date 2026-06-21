@@ -179,6 +179,17 @@ def main() -> None:
         F.sha2(F.concat_ws("|", F.col("title_id"), F.col("region"), F.col("year").cast("string")), 256),
     )
 
+    license_match_counts = result.agg(
+        F.count("*").alias("row_count"),
+        F.count("license_cost_usd").alias("licensed_row_count"),
+    ).collect()[0]
+    if license_match_counts["row_count"] > 0 and license_match_counts["licensed_row_count"] == 0:
+        raise ValueError(
+            "No licensing costs matched content usage. "
+            "Confirm the curated licensing dataset was regenerated from the same movies.csv as watch_history "
+            "and that clean_licensing.py ran after uploading the updated licensing_costs.csv."
+        )
+
     output_columns = [
         ("performance_id", "string"),
         ("title_id", "string"),
