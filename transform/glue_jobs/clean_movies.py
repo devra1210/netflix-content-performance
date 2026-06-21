@@ -53,10 +53,11 @@ def main() -> None:
         .option("recursiveFileLookup", True)
         .csv(source_path)
     )
+    
     for column in df.columns:
         df = df.withColumnRenamed(column, snake_case(column))
-
-    id = first_column(df.columns, ("movie_id", "title_id", "imdb_id", "id"))
+        
+    title_id = first_column(df.columns, ("movie_id", "title_id", "imdb_id", "id"))
     title = first_column(df.columns, ("title", "title_name", "name", "original_title", "movie_name"))
     genre = first_column(df.columns, ("genre_primary", "genre", "genres", "primary_genre"))
     secondary_genre = first_column(df.columns, ("genre_secondary", "secondary_genre"))
@@ -72,41 +73,60 @@ def main() -> None:
     netflix_original = first_column(df.columns, ("is_netflix_original", "netflix_original"))
     added_to_platform = first_column(df.columns, ("added_to_platform", "date_added"))
 
-    if id is None or title is None:
+    if title_id is None or title is None:
         raise ValueError(f"Movies source needs title id and name columns. Found: {df.columns}")
 
     selected = df.select(
-        F.col(id).cast("string").alias("id"),
+        F.col(title_id).cast("string").alias("title_id"),
         F.col(title).cast("string").alias("title"),
+    
         (F.col(genre).cast("string") if genre else F.lit(None).cast("string")).alias("genre"),
         (F.col(secondary_genre).cast("string") if secondary_genre else F.lit(None).cast("string")).alias("secondary_genre"),
+    
         (
             F.col(release_year).cast("int")
             if release_year
-            else F.year(F.to_date(F.col(release_date))).cast("int")
-            if release_date
-            else F.lit(None).cast("int")
+            else (
+                F.year(F.to_date(F.col(release_date))).cast("int")
+                if release_date
+                else F.lit(None).cast("int")
+            )
         ).alias("release_year"),
+    
         (
-            F.when(F.lower(F.col(content_type)).isin("tv", "show", "series", "tv_series"), "series")
-            .otherwise("movie")
+            F.when(
+                F.lower(F.col(content_type)).isin("tv", "show", "series", "tv_series"),
+                "series"
+            ).otherwise("movie")
             if content_type
             else F.lit("movie")
         ).alias("content_type"),
+    
         (F.col(popularity).cast("double") if popularity else F.lit(None).cast("double")).alias("popularity"),
         (F.col(duration).cast("double") if duration else F.lit(None).cast("double")).alias("duration_minutes"),
         (F.col(rating).cast("string") if rating else F.lit(None).cast("string")).alias("rating"),
         (F.col(language).cast("string") if language else F.lit(None).cast("string")).alias("language"),
         (F.col(country).cast("string") if country else F.lit(None).cast("string")).alias("country_of_origin"),
         (F.col(imdb_rating).cast("double") if imdb_rating else F.lit(None).cast("double")).alias("imdb_rating"),
-        (F.col(netflix_original).cast("boolean") if netflix_original else F.lit(None).cast("boolean")).alias("is_netflix_original"),
+    
+        (
+            F.when(
+                F.lower(F.col(netflix_original)).isin("true", "1", "yes"),
+                F.lit(True)
+            ).otherwise(F.lit(False))
+            if netflix_original
+            else F.lit(None).cast("boolean")
+        ).alias("is_netflix_original"),
+    
         (F.to_date(F.col(added_to_platform)) if added_to_platform else F.lit(None).cast("date")).alias("added_to_platform"),
     )
+    
 
     cleaned = (
-        selected.filter(F.col("id").isNotNull() & (F.length(F.trim("id")) > 0))
-        .dropDuplicates(["id"])
+        selected.filter(F.col("title_id").isNotNull() & (F.length(F.trim("title_id")) > 0))
+        .dropDuplicates(["title_id"])
     )
+
     cleaned.write.mode("overwrite").format("parquet").save(output_path)
     job.commit()
 

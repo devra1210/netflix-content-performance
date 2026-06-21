@@ -57,12 +57,12 @@ def main() -> None:
             F.col("title_name").cast("string").alias("title_name")
             if "title_name" in df.columns
             else F.lit(None).cast("string").alias("title_name"),
-
+    
             F.round(
                 F.col("license_cost_usd").cast("double") / 1000000,
                 2
             ).alias("license_cost_usd_millions"),
-
+    
             F.col("license_year").cast("int").alias("license_year"),
             F.upper(F.col("region").cast("string")).alias("region"),
         )
