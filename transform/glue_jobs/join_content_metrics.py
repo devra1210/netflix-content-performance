@@ -143,7 +143,7 @@ def main() -> None:
     licensing = licensing_df.select(
         F.col("title_id").cast("string").alias("title_id"),
         normalize_region(F.col("region")).alias("license_region"),
-        F.col("license_cost_usd").cast("double").alias("license_cost_usd"),
+        F.col("license_cost_usd_millions").cast("double").alias("license_cost_usd_millions"),
         F.col("license_year").cast("int").alias("license_year"),
     )
 
@@ -173,7 +173,7 @@ def main() -> None:
 
     result = joined.withColumn(
         "cost_per_hour_watched",
-        F.when(F.col("total_watch_hours") > 0, F.col("license_cost_usd") / F.col("total_watch_hours")),
+        F.when(F.col("total_watch_hours") > 0, F.col("license_cost_usd_millions") / F.col("total_watch_hours")),
     ).withColumn(
         "performance_id",
         F.sha2(F.concat_ws("|", F.col("title_id"), F.col("region"), F.col("year").cast("string")), 256),
@@ -181,7 +181,7 @@ def main() -> None:
 
     license_match_counts = result.agg(
         F.count("*").alias("row_count"),
-        F.count("license_cost_usd").alias("licensed_row_count"),
+        F.count("license_cost_usd_millions").alias("licensed_row_count"),
     ).collect()[0]
     if license_match_counts["row_count"] > 0 and license_match_counts["licensed_row_count"] == 0:
         raise ValueError(
@@ -199,7 +199,7 @@ def main() -> None:
         ("churn_rate_post_title", "double"),
         ("unique_viewers", "long"),
         ("license_region", "string"),
-        ("license_cost_usd", "double"),
+        ("license_cost_usd_millions", "double"),
         ("license_year", "int"),
         ("title_name", "string"),
         ("genre", "string"),
