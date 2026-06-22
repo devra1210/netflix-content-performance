@@ -53,7 +53,7 @@ def main() -> None:
             F.col("session_id").cast("string").alias("session_id"),
             F.col("user_id").cast("string").alias("user_id"),
             F.col("movie_id").cast("string").alias("title_id"),
-            F.to_timestamp(F.col("watch_date")).alias("watched_at"),
+            F.to_date(F.col("watch_date")).alias("watch_date"),
             F.col("device_type").cast("string").alias("device_type"),
             F.col("watch_duration_minutes").cast("double").alias("watch_duration_mins"),
             F.col("progress_percentage").cast("double").alias("progress_percentage"),
@@ -71,8 +71,8 @@ def main() -> None:
         )
         .dropDuplicates(["session_id"])
     )
-
-    cleaned.write.mode("overwrite").partitionBy("region").format("parquet").save(output_path)
+    
+    cleaned.write.mode("overwrite").format("parquet").save(output_path)
     job.commit()
 
 
